@@ -13,9 +13,12 @@ const _cardSurfaceBot = Color(0xFF151B27);
 const _subtleBorder = Color(0xFF2A3245);
 const _bottomBarBg = Color(0xFF12151D);
 
+// Accent palette — semantic assignments
 const _accentPurple = Color(0xFFA855F7);
 const _accentTeal = Color(0xFF36D1DC);
 const _accentGold = Color(0xFFF4B942);
+const _accentIndigo = Color(0xFF6366F1);
+const _accentViolet = Color(0xFF8B5CF6);
 
 const _cardGradient = LinearGradient(
   begin: Alignment.topCenter,
@@ -26,12 +29,12 @@ const _cardGradient = LinearGradient(
 BoxDecoration _cardDecoration({double borderRadius = 14}) => BoxDecoration(
       gradient: _cardGradient,
       borderRadius: BorderRadius.circular(borderRadius),
-      border: Border.all(color: _subtleBorder.withOpacity(0.5)),
+      border: Border.all(color: _subtleBorder.withOpacity(0.45)),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.20),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
+          color: Colors.black.withOpacity(0.18),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
         ),
       ],
     );
@@ -70,24 +73,24 @@ class _HomeScreenState extends State<HomeScreen> {
           // Solid dark base
           Container(color: _scaffoldBg),
 
-          // Radial glow behind ring area only
+          // Broad ambient glow behind ring — wider, softer, no beam
           Positioned(
-            top: 160,
+            top: 140,
             left: 0,
             right: 0,
             child: Center(
               child: Container(
-                width: 360,
-                height: 360,
+                width: 420,
+                height: 420,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      _accentPurple.withOpacity(0.16),
-                      _accentTeal.withOpacity(0.08),
+                      _accentPurple.withOpacity(0.10),
+                      _accentTeal.withOpacity(0.05),
                       Colors.transparent,
                     ],
-                    stops: const [0.0, 0.45, 0.85],
+                    stops: const [0.0, 0.40, 0.80],
                   ),
                 ),
               ),
@@ -105,9 +108,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildHeader(),
                   const SizedBox(height: 20),
                   _buildScriptureVerse(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 30),
                   _buildSpiritualProgress(),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 30),
                   _buildFeatureCards(),
                   const SizedBox(height: 18),
                   _buildUpcomingEvent(),
@@ -128,16 +131,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                _accentPurple.withOpacity(0.8),
-                _accentPurple.withOpacity(0.4),
+                _accentPurple.withOpacity(0.65),
+                _accentPurple.withOpacity(0.35),
               ],
             ),
           ),
@@ -145,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               'A',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 21,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -171,14 +174,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Friday, April 18',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.white.withOpacity(0.55),
+                  color: Colors.white.withOpacity(0.50),
                 ),
               ),
               Text(
                 'Friday in the Octave of Easter',
                 style: TextStyle(
                   fontSize: 13,
-                  color: _accentPurple.withOpacity(0.75),
+                  color: _accentPurple.withOpacity(0.65),
                 ),
               ),
             ],
@@ -187,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Stack(
           children: [
             Icon(Icons.notifications_outlined,
-                color: Colors.white.withOpacity(0.6), size: 28),
+                color: Colors.white.withOpacity(0.55), size: 27),
             Positioned(
               right: 0,
               top: 0,
@@ -195,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 9,
                 height: 9,
                 decoration: BoxDecoration(
-                  color: _accentPurple.withOpacity(0.85),
+                  color: _accentPurple.withOpacity(0.75),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -213,14 +216,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Icon(Icons.shield_outlined,
-              color: _accentPurple.withOpacity(0.7), size: 22),
+              color: _accentIndigo.withOpacity(0.65), size: 21),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'The Lord is my strength and my shield',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white.withOpacity(0.80),
                 height: 1.3,
               ),
             ),
@@ -229,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'Ps 3:7',
             style: TextStyle(
               fontSize: 13,
-              color: _accentTeal.withOpacity(0.7),
+              color: _accentTeal.withOpacity(0.60),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -242,9 +245,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         Center(
+          // Ring reduced ~10% from 200 → 178
           child: SizedBox(
-            width: 200,
-            height: 200,
+            width: 178,
+            height: 178,
             child: CustomPaint(
               painter: _GradientRingPainter(),
               child: Center(
@@ -254,7 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Text(
                       '0%',
                       style: TextStyle(
-                        fontSize: 42,
+                        fontSize: 38,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: -1,
@@ -263,8 +267,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'Spiritual Today',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.50),
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.42),
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -274,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -293,10 +297,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 9,
+          height: 9,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.85),
+            color: color.withOpacity(0.75),
             shape: BoxShape.circle,
           ),
         ),
@@ -304,8 +308,8 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.55),
-            fontSize: 14,
+            color: Colors.white.withOpacity(0.48),
+            fontSize: 13,
           ),
         ),
       ],
@@ -322,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.menu_book_rounded,
                 'Scripture\nReading',
                 'Read and meditate\non God\'s Word',
-                _accentPurple,
+                _accentIndigo, // blue/indigo for Scripture
               ),
             ),
             const SizedBox(width: 12),
@@ -331,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.auto_stories_rounded,
                 'Devotions',
                 'Daily devotionals\nfor your journey',
-                _accentTeal,
+                _accentPurple, // purple for Devotions
               ),
             ),
           ],
@@ -344,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.favorite_rounded,
                 'Journal',
                 'Reflect and grow\nspiritually',
-                _accentTeal,
+                _accentViolet, // soft violet for Journal
               ),
             ),
             const SizedBox(width: 12),
@@ -353,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.wb_sunny_rounded,
                 'Daily Prayer',
                 'Start your day\nwith God',
-                _accentGold,
+                _accentGold, // warm gold for Prayer
               ),
             ),
           ],
@@ -365,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFeatureCard(
       IconData icon, String title, String subtitle, Color iconColor) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: _cardDecoration(borderRadius: 16),
       child: Row(
         children: [
@@ -373,10 +377,10 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
+              color: iconColor.withOpacity(0.10),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: iconColor.withOpacity(0.85), size: 22),
+            child: Icon(icon, color: iconColor.withOpacity(0.75), size: 21),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -388,24 +392,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.90),
-                    height: 1.2,
+                    color: Colors.white.withOpacity(0.88),
+                    height: 1.25,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 5),
                 Text(
                   subtitle,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.white.withOpacity(0.40),
-                    height: 1.3,
+                    color: Colors.white.withOpacity(0.38),
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
           Icon(Icons.chevron_right,
-              color: Colors.white.withOpacity(0.20), size: 20),
+              color: Colors.white.withOpacity(0.18), size: 20),
         ],
       ),
     );
@@ -423,17 +427,17 @@ class _HomeScreenState extends State<HomeScreen> {
             Color(0xFF1A1F30),
           ],
         ),
-        border: Border.all(color: _accentPurple.withOpacity(0.15)),
+        border: Border.all(color: _accentPurple.withOpacity(0.12)),
         boxShadow: [
           BoxShadow(
-            color: _accentPurple.withOpacity(0.08),
-            blurRadius: 24,
+            color: _accentPurple.withOpacity(0.06),
+            blurRadius: 22,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -445,20 +449,21 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Event label — stronger contrast, gold accent
                 Text(
                   'Upcoming Event',
                   style: TextStyle(
                     fontSize: 12,
-                    color: _accentTeal.withOpacity(0.8),
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                    color: _accentGold.withOpacity(0.80),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 const Text(
                   'Morning Prayer Session',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: -0.2,
@@ -469,7 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Wed, April 8 \u2022 8:00 AM',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.50),
+                    color: Colors.white.withOpacity(0.45),
                   ),
                 ),
               ],
@@ -486,9 +491,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     clipBehavior: Clip.none,
                     children: List.generate(3, (i) {
                       final colors = [
-                        [_accentPurple.withOpacity(0.7), _accentPurple.withOpacity(0.4)],
-                        [_accentTeal.withOpacity(0.7), _accentTeal.withOpacity(0.4)],
-                        [_accentGold.withOpacity(0.7), _accentGold.withOpacity(0.4)],
+                        [_accentPurple.withOpacity(0.6), _accentPurple.withOpacity(0.3)],
+                        [_accentTeal.withOpacity(0.6), _accentTeal.withOpacity(0.3)],
+                        [_accentGold.withOpacity(0.6), _accentGold.withOpacity(0.3)],
                       ];
                       return Positioned(
                         left: i * 18.0,
@@ -503,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             gradient: LinearGradient(colors: colors[i]),
                           ),
                           child: Icon(Icons.person,
-                              size: 14, color: Colors.white.withOpacity(0.6)),
+                              size: 14, color: Colors.white.withOpacity(0.50)),
                         ),
                       );
                     }),
@@ -513,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   '24 going',
                   style: TextStyle(
-                      fontSize: 13, color: Colors.white.withOpacity(0.50)),
+                      fontSize: 13, color: Colors.white.withOpacity(0.45)),
                 ),
                 const Spacer(),
                 Container(
@@ -522,16 +527,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _accentPurple.withOpacity(0.7),
-                        _accentPurple.withOpacity(0.5),
+                        _accentPurple.withOpacity(0.55),
+                        _accentPurple.withOpacity(0.38),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: _accentPurple.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+                        color: _accentPurple.withOpacity(0.10),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -540,14 +545,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Join',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.95),
+                          color: Colors.white.withOpacity(0.90),
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Icon(Icons.chevron_right,
-                          color: Colors.white.withOpacity(0.85), size: 18),
+                          color: Colors.white.withOpacity(0.75), size: 18),
                     ],
                   ),
                 ),
@@ -565,15 +570,16 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: _cardDecoration(borderRadius: 16),
       child: Row(
         children: [
+          // Badge matches action card system — violet for Journal
           Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: _accentTeal.withOpacity(0.10),
+              color: _accentViolet.withOpacity(0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.description_outlined,
-                color: _accentTeal.withOpacity(0.7), size: 22),
+                color: _accentViolet.withOpacity(0.70), size: 21),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -585,46 +591,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.90),
+                    color: Colors.white.withOpacity(0.88),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   'Today was a peaceful day.',
                   style: TextStyle(
-                      fontSize: 13, color: Colors.white.withOpacity(0.45)),
+                      fontSize: 13, color: Colors.white.withOpacity(0.42)),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '2 days ago',
                   style: TextStyle(
-                      fontSize: 11, color: Colors.white.withOpacity(0.28)),
+                      fontSize: 11, color: Colors.white.withOpacity(0.25)),
                 ),
               ],
             ),
           ),
+          // Plus button — smaller, more restrained
           Container(
-            width: 44,
-            height: 44,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _accentPurple.withOpacity(0.6),
-                  _accentPurple.withOpacity(0.35),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _accentPurple.withOpacity(0.12),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: _accentViolet.withOpacity(0.18),
+              border: Border.all(color: _accentViolet.withOpacity(0.15)),
             ),
-            child: Icon(Icons.add, color: Colors.white.withOpacity(0.9), size: 24),
+            child: Icon(Icons.add,
+                color: _accentViolet.withOpacity(0.70), size: 20),
           ),
         ],
       ),
@@ -636,7 +631,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: _bottomBarBg,
         border: Border(
-            top: BorderSide(color: _subtleBorder.withOpacity(0.4))),
+            top: BorderSide(color: _subtleBorder.withOpacity(0.30))),
       ),
       child: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -644,10 +639,10 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: _accentPurple.withOpacity(0.9),
-        unselectedItemColor: Colors.white.withOpacity(0.30),
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
+        selectedItemColor: _accentPurple.withOpacity(0.75),
+        unselectedItemColor: Colors.white.withOpacity(0.26),
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_filled),
@@ -675,29 +670,29 @@ class _GradientRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 12;
+    final radius = size.width / 2 - 10;
 
-    // Background track ring
+    // Background track — subtle
     final bgPaint = Paint()
-      ..color = const Color(0xFF1B2230)
+      ..color = const Color(0xFF1A2030)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 8;
+      ..strokeWidth = 7;
     canvas.drawCircle(center, radius, bgPaint);
 
-    // Gradient ring — smoother color transitions
+    // Gradient ring — smooth transitions, refined palette
     final rect = Rect.fromCircle(center: center, radius: radius);
     final gradient = SweepGradient(
       startAngle: -pi / 2,
       endAngle: 3 * pi / 2,
       colors: [
-        _accentPurple,                    // Pray start
-        _accentPurple.withOpacity(0.85),
-        _accentGold.withOpacity(0.9),     // transition to Serve
-        _accentGold,
-        _accentTeal.withOpacity(0.9),     // transition to Reflect
-        _accentTeal,
-        _accentPurple.withOpacity(0.85),  // loop back
-        _accentPurple,
+        _accentPurple.withOpacity(0.90),
+        _accentPurple.withOpacity(0.75),
+        _accentGold.withOpacity(0.80),
+        _accentGold.withOpacity(0.85),
+        _accentTeal.withOpacity(0.80),
+        _accentTeal.withOpacity(0.85),
+        _accentPurple.withOpacity(0.75),
+        _accentPurple.withOpacity(0.90),
       ],
       stops: const [0.0, 0.12, 0.25, 0.38, 0.52, 0.68, 0.85, 1.0],
     );
@@ -705,7 +700,7 @@ class _GradientRingPainter extends CustomPainter {
     final gradientPaint = Paint()
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
+      ..strokeWidth = 6
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
@@ -716,15 +711,15 @@ class _GradientRingPainter extends CustomPainter {
       gradientPaint,
     );
 
-    // Soft glow — reduced intensity, wider blur
+    // Soft ambient glow — very restrained
     final glowGradient = SweepGradient(
       startAngle: -pi / 2,
       endAngle: 3 * pi / 2,
       colors: [
-        _accentPurple.withOpacity(0.14),
-        _accentGold.withOpacity(0.10),
-        _accentTeal.withOpacity(0.12),
-        _accentPurple.withOpacity(0.14),
+        _accentPurple.withOpacity(0.10),
+        _accentGold.withOpacity(0.07),
+        _accentTeal.withOpacity(0.08),
+        _accentPurple.withOpacity(0.10),
       ],
       stops: const [0.0, 0.33, 0.66, 1.0],
     );
@@ -732,8 +727,8 @@ class _GradientRingPainter extends CustomPainter {
     final glowPaint = Paint()
       ..shader = glowGradient.createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 18
-      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 22);
+      ..strokeWidth = 16
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 24);
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
@@ -748,9 +743,9 @@ class _GradientRingPainter extends CustomPainter {
     final sparkleX = center.dx + radius * cos(sparkleAngle);
     final sparkleY = center.dy + radius * sin(sparkleAngle);
     final sparklePaint = Paint()
-      ..color = Colors.white.withOpacity(0.65)
+      ..color = Colors.white.withOpacity(0.50)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawCircle(Offset(sparkleX, sparkleY), 2.5, sparklePaint);
+    canvas.drawCircle(Offset(sparkleX, sparkleY), 2, sparklePaint);
   }
 
   @override
