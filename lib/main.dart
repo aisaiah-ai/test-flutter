@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'prayer_screen.dart';
 
 void main() {
   runApp(const CfcApp());
@@ -148,7 +149,7 @@ class CfcApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: _scaffoldBg,
       ),
-      home: const HomeScreen(),
+      home: const PrayerScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
