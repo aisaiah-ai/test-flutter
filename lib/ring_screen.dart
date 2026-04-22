@@ -322,50 +322,62 @@ class SpiritualRingPainter extends CustomPainter {
   static const _dimDark = Color(0xFF1A1A2E);
   static const _dimLight = Color(0xFFD8D8E0);
   static const _minBrightness = 0.35;
-
   Color _color(Color brand, double intensity) {
     final dim = Color.lerp(brand, isDark ? _dimDark : _dimLight, 1.0 - _minBrightness)!;
     return Color.lerp(dim, brand, intensity.clamp(0.0, 1.0))!;
   }
 
-  /// Total stops around the full ring — one continuous loop, no separate arcs.
-  static const _totalSteps = 72;
+  Color _mix(Color a, Color b, [double t = 0.5]) => Color.lerp(a, b, t)!;
+  Color _mixHsv(Color a, Color b, [double t = 0.5]) =>
+      HSVColor.lerp(HSVColor.fromColor(a), HSVColor.fromColor(b), t)!.toColor();
 
-  List<Color> _buildColors() {
-    final pHsv = HSVColor.fromColor(prayColor);
-    final rHsv = HSVColor.fromColor(reflectColor);
-    final colors = <Color>[];
-    for (var i = 0; i <= _totalSteps; i++) {
-      final t = i / _totalSteps;
+  ({List<Color> colors, List<double> stops}) _buildGradientSpec({
+    required double alpha,
+  }) {
+    final pray = _color(prayColor, prayIntensity).withValues(alpha: alpha);
+    final reflect = _color(reflectColor, reflectIntensity).withValues(alpha: alpha);
+    final serve = _color(serveColor, serveIntensity).withValues(alpha: alpha);
 
-      final Color brandColor;
-      final double intensity;
-
-      if (t < 1.0 / 3.0) {
-        final localT = t * 3.0;
-        brandColor = HSVColor.lerp(pHsv, rHsv, localT)!.toColor();
-        intensity = prayIntensity + localT * (reflectIntensity - prayIntensity);
-      } else if (t < 2.0 / 3.0) {
-        final localT = (t - 1.0 / 3.0) * 3.0;
-        brandColor = Color.lerp(reflectColor, serveColor, localT)!;
-        intensity = reflectIntensity + localT * (serveIntensity - reflectIntensity);
-      } else {
-        final localT = (t - 2.0 / 3.0) * 3.0;
-        brandColor = Color.lerp(serveColor, prayColor, localT)!;
-        intensity = serveIntensity + localT * (prayIntensity - serveIntensity);
-      }
-
-      colors.add(_color(brandColor, intensity));
-    }
-    return colors;
-  }
-
-  List<double> _buildStops() {
-    final stops = <double>[];
-    for (var i = 0; i <= _totalSteps; i++) {
-      stops.add(i / _totalSteps);
-    }
-    return stops;
+    return (
+      colors: [
+        pray,
+        pray,
+        _mixHsv(pray, reflect, 0.12),
+        _mixHsv(pray, reflect, 0.28),
+        _mixHsv(pray, reflect, 0.46),
+        _mixHsv(pray, reflect, 0.68),
+        reflect,
+        reflect,
+        _mix(reflect, serve, 0.25),
+        _mix(reflect, serve, 0.55),
+        serve,
+        serve,
+        _mix(serve, pray, 0.22),
+        _mix(serve, pray, 0.50),
+        _mix(serve, pray, 0.76),
+        pray,
+        pray,
+      ],
+      stops: [
+        0.0,
+        0.10,
+        0.17,
+        0.21,
+        0.25,
+        0.29,
+        0.35,
+        0.46,
+        0.54,
+        0.60,
+        0.69,
+        0.79,
+        0.84,
+        0.88,
+        0.93,
+        0.97,
+        1.0,
+      ],
+    );
   }
 
   @override
@@ -374,15 +386,7 @@ class SpiritualRingPainter extends CustomPainter {
     final strokeWidth = isDark ? 12.0 : 11.0;
     final radius = size.width / 2 - strokeWidth;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final colors = _buildColors();
-    final stops = _buildStops();
-
-    final gradient = SweepGradient(
-      startAngle: -math.pi / 2,
-      endAngle: 3 * math.pi / 2,
-      colors: colors,
-      stops: stops,
-    );
+    final ringSpec = _buildGradientSpec(alpha: 1.0);
 
     // Light mode: gray base ring for contrast
     if (!isDark) {
@@ -396,14 +400,15 @@ class SpiritualRingPainter extends CustomPainter {
     }
 
     if (isDark) {
+      final glowSpec = _buildGradientSpec(alpha: 0.24);
       canvas.drawCircle(
         center, radius,
         Paint()
           ..shader = SweepGradient(
             startAngle: -math.pi / 2,
             endAngle: 3 * math.pi / 2,
-            colors: colors.map((c) => c.withValues(alpha: 0.25)).toList(),
-            stops: stops,
+            colors: glowSpec.colors,
+            stops: glowSpec.stops,
           ).createShader(rect)
           ..style = PaintingStyle.stroke
           ..strokeWidth = strokeWidth + 4
@@ -414,10 +419,15 @@ class SpiritualRingPainter extends CustomPainter {
     canvas.drawCircle(
       center, radius,
       Paint()
-        ..shader = gradient.createShader(rect)
+        ..shader = SweepGradient(
+          startAngle: -math.pi / 2,
+          endAngle: 3 * math.pi / 2,
+          colors: ringSpec.colors,
+          stops: ringSpec.stops,
+        ).createShader(rect)
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round,
+        ..strokeCap = StrokeCap.butt,
     );
   }
 
