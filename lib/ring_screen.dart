@@ -303,8 +303,24 @@ class _SpiritualRingGaugeState extends State<SpiritualRingGauge>
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Ring Painter — single gradient, intensity-driven
+// Ring Painter — seam-free sampled arc rendering
 // ──────────────────────────────────────────────────────────────────────
+//
+// Why one join shows a seam in a SweepGradient:
+//
+//   A SweepGradient interpolates smoothly between consecutive stops
+//   *within* its sweep range. But at the wrap point (where stop 1.0
+//   meets stop 0.0) there is NO interpolation — the shader hard-cuts
+//   from the last color to the first. The other two joins sit in the
+//   interior of the gradient and get smooth linear interpolation for
+//   free. Even after switching to sampled arcs, round stroke caps on
+//   the first/last segment and alpha blending in a glow pass can
+//   reintroduce a visible artifact at the same wrap position.
+//
+// Fix: draw N tiny arc segments with StrokeCap.butt (no cap protrusion)
+// and a small angular overlap (prevents sub-pixel gaps). Color is
+// sampled from a continuous blend profile — no shader, no wrap seam.
+//
 
 class SpiritualRingPainter extends CustomPainter {
   final double prayIntensity;
@@ -319,78 +335,124 @@ class SpiritualRingPainter extends CustomPainter {
     required this.isDark,
   });
 
+  // ── Rendering constants ────────────────────────────────────────
+
   static const _dimDark = Color(0xFF1A1A2E);
   static const _dimLight = Color(0xFFD8D8E0);
   static const _minBrightness = 0.35;
-  static const _gradientSteps = 720;
-  static const _arcOverlap = 0.006;
-  Color _color(Color brand, double intensity) {
-    final dim = Color.lerp(brand, isDark ? _dimDark : _dimLight, 1.0 - _minBrightness)!;
-    return Color.lerp(dim, brand, intensity.clamp(0.0, 1.0))!;
+
+  static const _segments = 360;
+  static const _segmentSweep = 2 * math.pi / _segments;
+  static const _overlap = 0.004; // radians — closes sub-pixel gaps
+  static const _startAngle = -math.pi / 2; // 12 o'clock
+
+  // ── Blend profile ──────────────────────────────────────────────
+  //
+  // Three equal zones around the ring (t = 0..1, clockwise from top).
+  // Each zone: plateau (pure color) flanked by smoothstep ramps.
+  //
+  //   PRAY ─── ramp ─── REFLECT ─── ramp ─── SERVE ─── ramp ─── PRAY
+  //   0.00  0.10     0.23  ·  0.43     0.57  ·  0.77     0.90  1.00
+  //
+  // Plateaus ≈ 20% each, ramps ≈ 13% each. Symmetric, no zone favored.
+
+  static const _prayEnd = 0.100;
+  static const _prayReflectEnd = 0.233;
+  static const _reflectEnd = 0.433;
+  static const _reflectServeEnd = 0.567;
+  static const _serveEnd = 0.767;
+  static const _servePrayEnd = 0.900;
+
+  // ── Color helpers ──────────────────────────────────────────────
+
+  /// Intensity dimming: 0 → 35 % of brand, 1 → full brand.
+  Color _dim(Color brand, double intensity) {
+    final base = Color.lerp(
+      brand,
+      isDark ? _dimDark : _dimLight,
+      1.0 - _minBrightness,
+    )!;
+    return Color.lerp(base, brand, intensity.clamp(0.0, 1.0))!;
   }
 
-  Color _mix(Color a, Color b, [double t = 0.5]) => Color.lerp(a, b, t)!;
-  Color _mixHsv(Color a, Color b, [double t = 0.5]) =>
-      HSVColor.lerp(HSVColor.fromColor(a), HSVColor.fromColor(b), t)!.toColor();
-
-  double _smoothstep(double edge0, double edge1, double x) {
+  /// Hermite smoothstep — zero derivative at both edges, no pop-in.
+  static double _smoothstep(double edge0, double edge1, double x) {
     final t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
-    return t * t * (3 - 2 * t);
+    return t * t * (3.0 - 2.0 * t);
   }
 
-  Color _sampleRingColor({
-    required double t,
+  /// Sample the ring color at position [t] (0 = top, clockwise).
+  ///
+  /// Pray→Reflect uses HSV lerp (they sit ~75° apart on the hue wheel;
+  /// RGB lerp produces a desaturated grey-blue midpoint). The other two
+  /// transitions have smaller hue gaps so RGB lerp looks clean.
+  Color _sample(double t, Color pray, Color reflect, Color serve) {
+    // Pray plateau (straddles the wrap at 0.0 / 1.0)
+    if (t <= _prayEnd || t >= _servePrayEnd) return pray;
+
+    // Pray → Reflect ramp (HSV — clean hue walk through blue/cyan)
+    if (t < _prayReflectEnd) {
+      return HSVColor.lerp(
+        HSVColor.fromColor(pray),
+        HSVColor.fromColor(reflect),
+        _smoothstep(_prayEnd, _prayReflectEnd, t),
+      )!
+          .toColor();
+    }
+
+    // Reflect plateau
+    if (t <= _reflectEnd) return reflect;
+
+    // Reflect → Serve ramp (RGB — short hue distance)
+    if (t < _reflectServeEnd) {
+      return Color.lerp(
+        reflect,
+        serve,
+        _smoothstep(_reflectEnd, _reflectServeEnd, t),
+      )!;
+    }
+
+    // Serve plateau
+    if (t <= _serveEnd) return serve;
+
+    // Serve → Pray ramp (RGB — short hue distance)
+    return Color.lerp(
+      serve,
+      pray,
+      _smoothstep(_serveEnd, _servePrayEnd, t),
+    )!;
+  }
+
+  // ── Drawing ────────────────────────────────────────────────────
+
+  /// Draw the ring as [_segments] tiny butt-capped arcs, each colored
+  /// by [_sample]. A small [_overlap] per arc prevents sub-pixel gaps.
+  /// One reusable [Paint] — no allocations inside the loop.
+  void _drawArcRing({
+    required Canvas canvas,
+    required Rect rect,
     required Color pray,
     required Color reflect,
     required Color serve,
-  }) {
-    if (t < 0.08) return pray;
-    if (t < 0.48) {
-      return _mixHsv(pray, reflect, _smoothstep(0.08, 0.48, t));
-    }
-    if (t < 0.60) return reflect;
-    if (t < 0.78) {
-      return _mix(reflect, serve, _smoothstep(0.60, 0.78, t));
-    }
-    if (t < 0.84) return serve;
-    if (t < 0.98) {
-      return _mix(serve, pray, _smoothstep(0.84, 0.98, t));
-    }
-    return pray;
-  }
-
-  void _drawSampledRing({
-    required Canvas canvas,
-    required Rect rect,
     required double strokeWidth,
-    required double alpha,
-    StrokeCap strokeCap = StrokeCap.round,
     MaskFilter? maskFilter,
   }) {
-    final pray = _color(prayColor, prayIntensity).withValues(alpha: alpha);
-    final reflect = _color(reflectColor, reflectIntensity).withValues(alpha: alpha);
-    final serve = _color(serveColor, serveIntensity).withValues(alpha: alpha);
-    const segmentSweep = (2 * math.pi) / _gradientSteps;
-    for (var i = 0; i < _gradientSteps; i++) {
-      final t = (i + 0.5) / _gradientSteps;
-      final color = _sampleRingColor(
-        t: t,
-        pray: pray,
-        reflect: reflect,
-        serve: serve,
-      );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt
+      ..isAntiAlias = true;
+    if (maskFilter != null) paint.maskFilter = maskFilter;
+
+    for (var i = 0; i < _segments; i++) {
+      final t = (i + 0.5) / _segments;
+      paint.color = _sample(t, pray, reflect, serve);
       canvas.drawArc(
         rect,
-        -math.pi / 2 + i * segmentSweep,
-        segmentSweep + _arcOverlap,
+        _startAngle + i * _segmentSweep,
+        _segmentSweep + _overlap,
         false,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth
-          ..strokeCap = strokeCap
-          ..isAntiAlias = true
-          ..maskFilter = maskFilter,
+        paint,
       );
     }
   }
@@ -402,10 +464,16 @@ class SpiritualRingPainter extends CustomPainter {
     final radius = size.width / 2 - strokeWidth;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
+    // Compute dimmed brand colors once per frame
+    final pray = _dim(prayColor, prayIntensity);
+    final reflect = _dim(reflectColor, reflectIntensity);
+    final serve = _dim(serveColor, serveIntensity);
+
     // Light mode: gray base ring for contrast
     if (!isDark) {
       canvas.drawCircle(
-        center, radius,
+        center,
+        radius,
         Paint()
           ..color = const Color(0xFFEAEAEA)
           ..style = PaintingStyle.stroke
@@ -413,22 +481,27 @@ class SpiritualRingPainter extends CustomPainter {
       );
     }
 
+    // Dark mode: subtle glow — low alpha, restrained blur, butt caps
     if (isDark) {
-      _drawSampledRing(
+      _drawArcRing(
         canvas: canvas,
         rect: rect,
+        pray: pray.withValues(alpha: 0.06),
+        reflect: reflect.withValues(alpha: 0.06),
+        serve: serve.withValues(alpha: 0.06),
         strokeWidth: strokeWidth + 2,
-        alpha: 0.045,
-        strokeCap: StrokeCap.butt,
-        maskFilter: const MaskFilter.blur(BlurStyle.normal, 10),
+        maskFilter: const MaskFilter.blur(BlurStyle.normal, 8),
       );
     }
 
-    _drawSampledRing(
+    // Main ring — sampled arcs, zero seams
+    _drawArcRing(
       canvas: canvas,
       rect: rect,
+      pray: pray,
+      reflect: reflect,
+      serve: serve,
       strokeWidth: strokeWidth,
-      alpha: 1.0,
     );
   }
 
