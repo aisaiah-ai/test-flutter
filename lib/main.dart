@@ -912,7 +912,7 @@ class _SpiritualPresencePainter extends CustomPainter {
     final trackPaint = Paint()
       ..color = const Color(0xFF1A2030)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 6;
+      ..strokeWidth = 10.5;
     canvas.drawCircle(center, radius, trackPaint);
 
     // 2. Single sweep gradient — all three colors in one continuous ring
@@ -983,7 +983,7 @@ class _SpiritualPresencePainter extends CustomPainter {
     final ringPaint = Paint()
       ..shader = ringGradient.createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
+      ..strokeWidth = 9
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(center, radius, ringPaint);
 
@@ -1007,7 +1007,7 @@ class _SpiritualPresencePainter extends CustomPainter {
     final glowPaint = Paint()
       ..shader = glowGradient.createShader(rect)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 16
+      ..strokeWidth = 27
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     canvas.drawCircle(center, radius, glowPaint);
   }
