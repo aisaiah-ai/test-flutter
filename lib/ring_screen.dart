@@ -322,6 +322,8 @@ class SpiritualRingPainter extends CustomPainter {
   static const _dimDark = Color(0xFF1A1A2E);
   static const _dimLight = Color(0xFFD8D8E0);
   static const _minBrightness = 0.35;
+  static const _gradientSteps = 720;
+  static const _arcOverlap = 0.006;
   Color _color(Color brand, double intensity) {
     final dim = Color.lerp(brand, isDark ? _dimDark : _dimLight, 1.0 - _minBrightness)!;
     return Color.lerp(dim, brand, intensity.clamp(0.0, 1.0))!;
@@ -331,53 +333,66 @@ class SpiritualRingPainter extends CustomPainter {
   Color _mixHsv(Color a, Color b, [double t = 0.5]) =>
       HSVColor.lerp(HSVColor.fromColor(a), HSVColor.fromColor(b), t)!.toColor();
 
-  ({List<Color> colors, List<double> stops}) _buildGradientSpec({
+  double _smoothstep(double edge0, double edge1, double x) {
+    final t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
+    return t * t * (3 - 2 * t);
+  }
+
+  Color _sampleRingColor({
+    required double t,
+    required Color pray,
+    required Color reflect,
+    required Color serve,
+  }) {
+    if (t < 0.08) return pray;
+    if (t < 0.48) {
+      return _mixHsv(pray, reflect, _smoothstep(0.08, 0.48, t));
+    }
+    if (t < 0.60) return reflect;
+    if (t < 0.78) {
+      return _mix(reflect, serve, _smoothstep(0.60, 0.78, t));
+    }
+    if (t < 0.84) return serve;
+    if (t < 0.98) {
+      return _mix(serve, pray, _smoothstep(0.84, 0.98, t));
+    }
+    return pray;
+  }
+
+  void _drawSampledRing({
+    required Canvas canvas,
+    required Rect rect,
+    required double strokeWidth,
     required double alpha,
+    StrokeCap strokeCap = StrokeCap.round,
+    MaskFilter? maskFilter,
   }) {
     final pray = _color(prayColor, prayIntensity).withValues(alpha: alpha);
     final reflect = _color(reflectColor, reflectIntensity).withValues(alpha: alpha);
     final serve = _color(serveColor, serveIntensity).withValues(alpha: alpha);
-
-    return (
-      colors: [
-        pray,
-        pray,
-        _mixHsv(pray, reflect, 0.12),
-        _mixHsv(pray, reflect, 0.28),
-        _mixHsv(pray, reflect, 0.46),
-        _mixHsv(pray, reflect, 0.68),
-        reflect,
-        reflect,
-        _mix(reflect, serve, 0.25),
-        _mix(reflect, serve, 0.55),
-        serve,
-        serve,
-        _mix(serve, pray, 0.22),
-        _mix(serve, pray, 0.50),
-        _mix(serve, pray, 0.76),
-        pray,
-        pray,
-      ],
-      stops: [
-        0.0,
-        0.10,
-        0.17,
-        0.21,
-        0.25,
-        0.29,
-        0.35,
-        0.46,
-        0.54,
-        0.60,
-        0.69,
-        0.79,
-        0.84,
-        0.88,
-        0.93,
-        0.97,
-        1.0,
-      ],
-    );
+    const segmentSweep = (2 * math.pi) / _gradientSteps;
+    for (var i = 0; i < _gradientSteps; i++) {
+      final t = (i + 0.5) / _gradientSteps;
+      final color = _sampleRingColor(
+        t: t,
+        pray: pray,
+        reflect: reflect,
+        serve: serve,
+      );
+      canvas.drawArc(
+        rect,
+        -math.pi / 2 + i * segmentSweep,
+        segmentSweep + _arcOverlap,
+        false,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = strokeCap
+          ..isAntiAlias = true
+          ..maskFilter = maskFilter,
+      );
+    }
   }
 
   @override
@@ -386,7 +401,6 @@ class SpiritualRingPainter extends CustomPainter {
     final strokeWidth = isDark ? 12.0 : 11.0;
     final radius = size.width / 2 - strokeWidth;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final ringSpec = _buildGradientSpec(alpha: 1.0);
 
     // Light mode: gray base ring for contrast
     if (!isDark) {
@@ -400,34 +414,21 @@ class SpiritualRingPainter extends CustomPainter {
     }
 
     if (isDark) {
-      final glowSpec = _buildGradientSpec(alpha: 0.24);
-      canvas.drawCircle(
-        center, radius,
-        Paint()
-          ..shader = SweepGradient(
-            startAngle: -math.pi / 2,
-            endAngle: 3 * math.pi / 2,
-            colors: glowSpec.colors,
-            stops: glowSpec.stops,
-          ).createShader(rect)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth + 4
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+      _drawSampledRing(
+        canvas: canvas,
+        rect: rect,
+        strokeWidth: strokeWidth + 2,
+        alpha: 0.045,
+        strokeCap: StrokeCap.butt,
+        maskFilter: const MaskFilter.blur(BlurStyle.normal, 10),
       );
     }
 
-    canvas.drawCircle(
-      center, radius,
-      Paint()
-        ..shader = SweepGradient(
-          startAngle: -math.pi / 2,
-          endAngle: 3 * math.pi / 2,
-          colors: ringSpec.colors,
-          stops: ringSpec.stops,
-        ).createShader(rect)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.butt,
+    _drawSampledRing(
+      canvas: canvas,
+      rect: rect,
+      strokeWidth: strokeWidth,
+      alpha: 1.0,
     );
   }
 
