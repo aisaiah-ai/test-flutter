@@ -9,10 +9,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 ///   2. Ambient color haze — soft purple + teal light spilling into the dark.
 ///   3. Layered emissive bloom — several blurred copies of the logo group that
 ///      give it luminous separation from the background.
-///   4. The crisp vector logo (cross + dove) and "AIsaiah" wordmark on top.
+///   4. The crisp vector cross/dove and the "AIsaiah" wordmark on top.
 ///
-/// A slow "breathing" pulse animates the glow so it feels alive; an entrance
-/// fade + scale plays on launch. Tap anywhere or hit Refresh to replay.
+/// Motion: the glow breathes brighter on a slow pulse, and the wordmark's
+/// purple→blue gradient continuously flows across the letters. An entrance
+/// fade + scale plays on launch; tap anywhere or hit Refresh to replay.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -32,20 +33,25 @@ class _SplashScreenState extends State<SplashScreen>
   static const _crossWidth = 150.0;
   static const _markWidth = 210.0;
 
-  // Brand gradient: deep purple -> blue-violet -> azure -> cyan-blue.
-  static const _brandColors = [
+  // Looping brand palette (starts and ends on the same purple) so the flowing
+  // gradient can repeat seamlessly: purple -> blue-violet -> azure -> cyan and
+  // back.
+  static const _flowColors = [
     Color(0xFF6A2C91),
     Color(0xFF5538B8),
     Color(0xFF2C8FD0),
     Color(0xFF12A0D8),
+    Color(0xFF2C8FD0),
+    Color(0xFF5538B8),
+    Color(0xFF6A2C91),
   ];
-  static const _brandStops = [0.0, 0.38, 0.78, 1.0];
 
   late final AnimationController _entrance;
   late final Animation<double> _fade;
   late final Animation<double> _scale;
 
-  late final AnimationController _pulse; // slow breathing glow
+  late final AnimationController _pulse; // brightening breath
+  late final AnimationController _flow; // gradient slide
 
   @override
   void initState() {
@@ -63,8 +69,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     _pulse = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3800),
+      duration: const Duration(milliseconds: 2800),
     )..repeat(reverse: true);
+
+    _flow = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5200),
+    )..repeat(); // continuous, non-reversing slide
   }
 
   void _replay() {
@@ -77,35 +88,36 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _entrance.dispose();
     _pulse.dispose();
+    _flow.dispose();
     super.dispose();
   }
 
-  /// The composed logo: vector cross/dove above the gradient "AIsaiah"
-  /// wordmark and the "FAITH. GROWTH. PURPOSE." tagline.
-  Widget _logoGroup() {
+  /// The composed logo: vector cross/dove above the flowing-gradient wordmark
+  /// and the "FAITH. GROWTH. PURPOSE." tagline.
+  Widget _logoGroup(double flow) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         SvgPicture.asset(_crossAsset, width: _crossWidth),
         const SizedBox(height: 22),
-        _wordmark(),
+        _wordmark(flow),
         const SizedBox(height: 11),
         _tagline(),
       ],
     );
   }
 
-  /// "AIsaiah" recolored with a left-to-right purple → blue gradient by
-  /// masking the wordmark's vector shapes (BlendMode.srcIn keeps the glyph
-  /// alpha and paints the gradient through it).
-  Widget _wordmark() {
+  /// "AIsaiah" recolored with the brand gradient, slid horizontally by [flow]
+  /// (0→1 = one seamless loop) so the colors flow across the letters.
+  Widget _wordmark(double flow) {
     return ShaderMask(
       blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => const LinearGradient(
+      shaderCallback: (bounds) => LinearGradient(
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
-        colors: _brandColors,
-        stops: _brandStops,
+        colors: _flowColors,
+        tileMode: TileMode.repeated,
+        transform: _SlideGradient(flow),
       ).createShader(bounds),
       child: SvgPicture.asset(_markAsset, width: _markWidth),
     );
@@ -125,14 +137,14 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   /// One blurred copy of the logo group, scaled out and faded — a bloom shell.
-  Widget _bloom(double sigma, double opacity, double scale) {
+  Widget _bloom(double flow, double sigma, double opacity, double scale) {
     return Opacity(
       opacity: opacity.clamp(0.0, 1.0),
       child: Transform.scale(
         scale: scale,
         child: ImageFiltered(
           imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-          child: _logoGroup(),
+          child: _logoGroup(flow),
         ),
       ),
     );
@@ -167,12 +179,13 @@ class _SplashScreenState extends State<SplashScreen>
         onTap: _replay,
         behavior: HitTestBehavior.opaque,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_entrance, _pulse]),
+          animation: Listenable.merge([_entrance, _pulse, _flow]),
           builder: (context, _) {
-            // Breathing factor 0.78 -> 1.0, gated by the entrance fade so the
-            // glow blooms in rather than popping.
-            final breath = 0.78 + 0.22 * _pulse.value;
+            // Wider breath swing (0.6 -> 1.0) so the glow visibly brightens,
+            // gated by the entrance fade so it blooms in rather than popping.
+            final breath = 0.60 + 0.40 * _pulse.value;
             final glow = breath * _fade.value;
+            final flow = _flow.value;
 
             return Stack(
               children: [
@@ -197,11 +210,11 @@ class _SplashScreenState extends State<SplashScreen>
                 // 2. Ambient color haze — light spill into the dark.
                 Positioned.fill(
                   child: _haze(
-                      _purple, 620, const Alignment(0, -0.18), 0.22 * glow),
+                      _purple, 640, const Alignment(0, -0.18), 0.26 * glow),
                 ),
                 Positioned.fill(
                   child: _haze(
-                      _teal, 520, const Alignment(0, 0.12), 0.13 * glow),
+                      _teal, 540, const Alignment(0, 0.12), 0.16 * glow),
                 ),
 
                 // 3 + 4. Logo with layered bloom, centered.
@@ -213,10 +226,10 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          _bloom(46, 0.40 * breath, 1.16),
-                          _bloom(22, 0.50 * breath, 1.07),
-                          _bloom(9, 0.62 * breath, 1.01),
-                          _logoGroup(),
+                          _bloom(flow, 48, 0.50 * breath, 1.18),
+                          _bloom(flow, 24, 0.62 * breath, 1.08),
+                          _bloom(flow, 10, 0.78 * breath, 1.01),
+                          _logoGroup(flow),
                         ],
                       ),
                     ),
@@ -240,5 +253,17 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       ),
     );
+  }
+}
+
+/// Translates a gradient horizontally by [fraction] of the paint bounds width,
+/// used to make a repeating gradient flow across the masked shapes.
+class _SlideGradient extends GradientTransform {
+  final double fraction;
+  const _SlideGradient(this.fraction);
+
+  @override
+  Matrix4 transform(Rect bounds, {TextDirection? textDirection}) {
+    return Matrix4.translationValues(bounds.width * fraction, 0.0, 0.0);
   }
 }
