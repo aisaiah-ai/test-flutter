@@ -150,7 +150,7 @@ class CfcApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: _scaffoldBg,
       ),
-      home: const SplashScreen(),
+      home: const SplashScreen(next: HomeScreen()),
       debugShowCheckedModeBanner: false,
     );
   }

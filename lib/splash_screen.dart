@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,9 +14,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 ///
 /// Motion: the glow breathes brighter on a slow pulse, and the wordmark's
 /// purple→blue gradient continuously flows across the letters. An entrance
-/// fade + scale plays on launch; tap anywhere or hit Refresh to replay.
+/// fade + scale plays on launch; after a brief hold the splash cross-fades
+/// into [next] (the app's main screen). Tapping anywhere skips the wait.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  /// The screen revealed once the splash sequence finishes.
+  final Widget next;
+
+  const SplashScreen({super.key, required this.next});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -53,6 +58,9 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _pulse; // brightening breath
   late final AnimationController _flow; // gradient slide
 
+  Timer? _advance; // fires once to reveal the main screen
+  bool _leaving = false; // guards against double navigation
+
   @override
   void initState() {
     super.initState();
@@ -76,16 +84,30 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 5200),
     )..repeat(); // continuous, non-reversing slide
+
+    // Play the 1.4s entrance, hold on the bloomed logo, then reveal the app.
+    _advance = Timer(const Duration(milliseconds: 2800), _goHome);
   }
 
-  void _replay() {
-    _entrance
-      ..reset()
-      ..forward();
+  /// Cross-fades from the splash into the app's main screen. Idempotent — the
+  /// auto-advance timer and a user tap both route here, but only the first
+  /// call navigates.
+  void _goHome() {
+    if (_leaving || !mounted) return;
+    _leaving = true;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 650),
+        pageBuilder: (_, __, ___) => widget.next,
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _advance?.cancel();
     _entrance.dispose();
     _pulse.dispose();
     _flow.dispose();
@@ -176,7 +198,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: _replay,
+        onTap: _goHome,
         behavior: HitTestBehavior.opaque,
         child: AnimatedBuilder(
           animation: Listenable.merge([_entrance, _pulse, _flow]),
