@@ -240,18 +240,6 @@ class _SplashScreenState extends State<SplashScreen>
           },
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: TextButton.icon(
-          onPressed: _replay,
-          icon: const Icon(Icons.refresh, size: 18),
-          label: const Text('Refresh'),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white.withOpacity(0.45),
-          ),
-        ),
-      ),
     );
   }
 }
