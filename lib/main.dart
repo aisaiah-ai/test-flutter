@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'ring_screen.dart';
+import 'splash_screen.dart';
 
 void main() {
   runApp(const CfcApp());
@@ -149,7 +150,7 @@ class CfcApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: _scaffoldBg,
       ),
-      home: const RingScreen(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
